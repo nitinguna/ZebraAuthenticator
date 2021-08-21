@@ -1,0 +1,12 @@
+{
+  "client_id": "0oa1htlsw4K1i94k25d7",
+  "redirect_uri": "com.okta.dev-53111652:/callback",
+  "end_session_redirect_uri": "com.okta.dev-53111652:/callback",
+  "authorization_scope": "openid email profile offline_access",
+  "discovery_uri": "https://dev-53111652.okta.com/.well-known/openid-configuration",
+  "authorization_endpoint_uri": "",
+  "token_endpoint_uri": "",
+  "registration_endpoint_uri": "",
+  "user_info_endpoint_uri": "",
+  "https_required": true
+}

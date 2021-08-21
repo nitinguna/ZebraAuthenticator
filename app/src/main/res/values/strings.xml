@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">ZebraAuthenticator</string>
+    <string name="username">User Name</string>
+    <string name="password">Password</string>
+    <string name="signin">SignIn</string>
+    <string name="cancel">Cancel</string>
+</resources>

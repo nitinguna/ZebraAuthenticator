@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#D32323"
+    android:scrollbarAlwaysDrawVerticalTrack="true"
+    android:scrollbars="vertical"
+    tools:context=".MainActivity">
+
+    <ScrollView
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent">
+
+
+        <RelativeLayout
+            android:id="@+id/form_layout"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content">
+
+            <EditText
+                android:id="@+id/username"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="40dp"
+                android:ems="10"
+                android:inputType="textPersonName"
+                android:text="Enter Username"
+                android:visibility="visible"
+                tools:visibility="visible" />
+
+            <EditText
+                android:id="@+id/password"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/username"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="40dp"
+                android:ems="10"
+                android:inputType="textPersonName"
+                android:text="Password" />
+
+            <Button
+                android:id="@+id/button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/password"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="40dp"
+                android:text="Submit" />
+
+
+        </RelativeLayout>
+    </ScrollView>
+</RelativeLayout>
