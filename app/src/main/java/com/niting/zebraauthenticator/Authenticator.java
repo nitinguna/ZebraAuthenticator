@@ -1,11 +1,15 @@
 package com.niting.zebraauthenticator;
 
 import android.app.Service;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.graphics.PixelFormat;
+import android.os.AsyncTask;
 import android.os.IBinder;
+import android.os.RemoteException;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -13,16 +17,24 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.fragment.app.DialogFragment;
 
 import com.google.android.material.snackbar.Snackbar;
+import com.symbol.mxmf.IMxFrameworkService;
 
 import net.openid.appauth.AuthState;
 import net.openid.appauth.AuthorizationException;
 import net.openid.appauth.AuthorizationResponse;
 import net.openid.appauth.AuthorizationService;
 import net.openid.appauth.AuthorizationServiceConfiguration;
+
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 
 import static android.view.View.SYSTEM_UI_FLAG_FULLSCREEN;
 import static android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
@@ -42,6 +54,7 @@ import static com.niting.zebraauthenticator.Utility.displayNotAuthorized;
 
 public class Authenticator extends Service {
     private static final String TAG = "ZebraAuthenticator";
+
     private Boolean mSignoutRequested = false;
 
     private Utility utils;
@@ -75,6 +88,7 @@ public class Authenticator extends Service {
         //newFragment.show(getSupportFragmentManager(), "missiles");
 
         if (intent!=null && intent.getBooleanExtra(EXTRA_BOOT, false)) {
+            //utils.bindMXMFServices("config.xml");
             if (!utils.isAuthenticated()){
                 utils.showWindow();
             }
@@ -142,9 +156,7 @@ public class Authenticator extends Service {
                 }
             }
         }
-
         return START_STICKY;
-
     }
 
 

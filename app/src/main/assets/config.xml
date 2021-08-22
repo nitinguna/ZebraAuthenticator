@@ -1,0 +1,5 @@
+<wap-provisioningdoc>
+<characteristic type="MX" version="4.4">
+<parm-query name="Version"/>
+</characteristic>
+</wap-provisioningdoc>

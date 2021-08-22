@@ -2,10 +2,15 @@ package com.niting.zebraauthenticator;
 
 import android.annotation.TargetApi;
 import android.app.PendingIntent;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.graphics.PixelFormat;
+import android.os.AsyncTask;
 import android.os.Build;
+import android.os.IBinder;
+import android.os.RemoteException;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -18,6 +23,8 @@ import androidx.annotation.ColorRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.browser.customtabs.CustomTabsIntent;
+
+import com.symbol.mxmf.IMxFrameworkService;
 
 import net.openid.appauth.AppAuthConfiguration;
 import net.openid.appauth.AuthState;
@@ -40,6 +47,11 @@ import net.openid.appauth.browser.BrowserMatcher;
 
 import org.joda.time.format.DateTimeFormat;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
@@ -60,6 +72,16 @@ public class Utility {
     public static final String EXTRA_LOGOUT = "logout";
     public static final String EXTRA_LOGOUT_FULL = "logoutfull";
     public static final String EXTRA_BOOT = "boot";
+    Object syncObject = new Object();
+    // Mx Framework package name
+    private static String MX_FRAMEWORK_PKG = "com.symbol.mxmf";
+    // Mx Framework service class name
+    private static String MX_FRAMEWORK_SERVICE_CLS= "com.symbol.mxmf.MxFrameworkService";
+
+    private static final String IS_MXMF_INIT_DONE = "IsMxmfInitDone";
+    String mXMLConfigString = null;
+    IMxFrameworkService mMxFrameworkService = null;
+
     Context mContext;
     private AuthorizationService mAuthService;
     private AuthStateManager mAuthStateManager;
@@ -99,6 +121,14 @@ public class Utility {
     private void showWindowInternal(){
         Log.v(TAG, "showWindow" );
         isShowing = true;
+
+        String SubmitXML = null;
+        SubmitXML = getXml("enforceLock.xml");
+        Log.d(TAG, "SummitXML  :: "+SubmitXML);
+        String result = null;
+        SubmitMXTask SubmitXMLTask = new SubmitMXTask();
+        SubmitXMLTask.execute(SubmitXML);
+
         final WindowManager wm = (WindowManager)mContext.getSystemService(WINDOW_SERVICE);
 
         final DisplayMetrics metrics = new DisplayMetrics();
@@ -508,6 +538,12 @@ public class Utility {
 
     private void displayAuthorized() {
 
+        String SubmitXML = null;
+        SubmitXML = getXml("relax.xml");
+        Log.d(TAG, "SummitXML  :: "+SubmitXML);
+        String result = null;
+        SubmitMXTask SubmitXMLTask = new SubmitMXTask();
+        SubmitXMLTask.execute(SubmitXML);
 
         AuthState state = mAuthStateManager.getCurrent();
 
@@ -555,5 +591,175 @@ public class Utility {
 
 
     }
+
+    // ###################### MX Service Binding stuff IGNORE /////////////////////
+
+    // Private methods
+    private String getXml(String fileName) {
+        BufferedReader br;
+        InputStream inputStream = null;
+
+        try {
+
+            // inputStream = new FileInputStream(fileName);
+            inputStream = mContext.getAssets().open(fileName);
+
+            // inputStream = openFileInput(fileName);
+        } catch (FileNotFoundException e1) {
+
+            Log.e(TAG, e1.getMessage());
+            // e1.printStackTrace();
+            return null;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // convert xml file to string
+        try {
+            br = new BufferedReader(new InputStreamReader(inputStream));
+
+            String line;
+            StringBuilder sb = new StringBuilder();
+
+            while ((line = br.readLine()) != null) {
+                sb.append(line.trim());
+            }
+            br.close();
+            Log.d(TAG,
+                    "getXml: >>>>>>>>>>>>>>>sb.toString() = " + sb.toString());
+            return sb.toString();
+        } catch (Exception e) {
+            Log.e(TAG, e.getMessage());
+            // e.printStackTrace();
+        }
+        return null;
+    }
+
+    // ///////////////////////////////////////////////////////////////////////
+    // Using AIDL binding
+    // -------------------------------------------------------------------------
+    //
+    // The primary interface we will be calling on the Mx framework service.
+    public void bindMXMFServices(String filepath) {
+        mXMLConfigString = getXml(filepath);
+
+        Intent bindServiceIntent = new Intent();
+        bindServiceIntent.setComponent(new ComponentName(MX_FRAMEWORK_PKG,
+                MX_FRAMEWORK_SERVICE_CLS));
+        bindServiceIntent.putExtra("XMLRequest", mXMLConfigString);
+        try {
+            mContext.bindService(bindServiceIntent, mMxFrameworkServiceConnection,
+                    Context.BIND_AUTO_CREATE);
+        } catch (SecurityException e) {
+            Log.e(TAG, e.getMessage());
+            //Toast.makeText(context, "MXMF Service Not Accessible", Toast.LENGTH_SHORT).show();
+
+        }
+    }
+
+    private class SubmitMXTask extends AsyncTask<String, Integer, String> {
+        @Override
+        protected String doInBackground(String... sumitXML) {
+            String returnValueFromFramework = null;
+            try {
+                if (mMxFrameworkService == null)
+                {
+                    bindMXMFServices("config.xml");
+                    try {
+                        synchronized (syncObject){
+                            syncObject.wait(10000);
+                        }
+                    } catch (InterruptedException e) {
+                        Log.d(TAG,"Mx Service wait completed");
+                    }
+
+                }
+                returnValueFromFramework = mMxFrameworkService.processXML(sumitXML[0]);
+                if (null != returnValueFromFramework) {
+
+                    // As part of the sample, tell the user what happened.
+                    Log.e(TAG,
+                            "ResultXML"
+                                    + returnValueFromFramework);
+                }
+
+                return returnValueFromFramework;
+            }
+            catch (NullPointerException e) {
+
+                Log.e(TAG, e.getMessage());
+
+            } catch (Exception e) {
+
+                Log.e(TAG, e.getMessage());
+
+            }
+
+            return returnValueFromFramework;
+        }
+
+
+
+    }
+
+    // Class for interacting with the main interface of the service.
+    private ServiceConnection mMxFrameworkServiceConnection = new ServiceConnection() {
+
+
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            // This is called when the connection with the service has been
+            // established, giving us the service object we can use to
+            // interact with the service. We are communicating with our
+            // service through an IDL interface, so get a client-side
+            // representation of that from the raw service object.
+
+            mMxFrameworkService = IMxFrameworkService.Stub.asInterface(service);
+
+            if (null != mMxFrameworkService) {
+                Log.d(TAG,
+                        "onServiceConnected: Mx framework service is connected");
+            }
+
+            String returnValueFromFramework = null;
+            boolean bIsMxmfReady = false;
+            int timeWait = 0;
+            while (!bIsMxmfReady && timeWait < 30) {
+                try {
+                    Thread.sleep(1000);
+                } catch (Exception e) {
+                }
+                ++timeWait;
+                String sReady = null;
+                try {
+                    sReady = mMxFrameworkService.getValue(IS_MXMF_INIT_DONE);
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
+                Log.d(TAG, "onServiceConnected: received mMxFrameworkService.getValue() =" + sReady);
+                int index = sReady.indexOf(":");
+
+                String s = sReady.substring(index + 1);
+                //bIsMxmfReady = Boolean.parseBoolean(sReady.substring(index));
+                bIsMxmfReady = Boolean.parseBoolean(s);
+                Log.e(TAG, "onServiceConnected: received mMxFrameworkService.getValue()=[" + s + "] bIsMxmfReady:" + bIsMxmfReady);
+                if(bIsMxmfReady){
+                    synchronized (syncObject) {
+                        syncObject.notifyAll();
+                    }
+                    Log.d(TAG, "onService Connected out");
+                }
+            }
+
+        }
+
+
+        public void onServiceDisconnected(ComponentName className) {
+            // This is called when the connection with the service has been
+            // unexpectedly disconnected -- that is, its process crashed.
+            mMxFrameworkService = null;
+            Log.e(TAG, "onServiceDisconnected");
+        }
+    };
+
 
 }
