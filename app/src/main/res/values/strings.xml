@@ -1,7 +1,14 @@
 <resources>
     <string name="app_name">ZebraAuthenticator</string>
+    <string name="app_name_second">ZAuth</string>
     <string name="username">User Name</string>
     <string name="password">Password</string>
     <string name="signin">SignIn</string>
     <string name="cancel">Cancel</string>
+
+    <string name="device_tracker_disclaimer_message">**This device can be located via the Zebra Device Tracker App**</string>
+    <string name="user_name">Username</string>
+    <string name="next">Next</string>
+    <string name="start_lock_task">Start Lock Task</string>
+    <string name="stop_lock_task">Stop Lock Task</string>
 </resources>

@@ -18,6 +18,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.Toast;
 
 import androidx.annotation.ColorRes;
 import androidx.annotation.NonNull;
@@ -25,6 +26,8 @@ import androidx.annotation.Nullable;
 import androidx.browser.customtabs.CustomTabsIntent;
 
 import com.symbol.mxmf.IMxFrameworkService;
+import com.symbol.osx.mxaddonservice.IMxAddonServiceManager;
+import com.symbol.osx.proxyframework.IMxAddonProxyManager;
 
 import net.openid.appauth.AppAuthConfiguration;
 import net.openid.appauth.AuthState;
@@ -108,6 +111,7 @@ public class Utility {
         mContext = context;
         mAuthStateManager = AuthStateManager.getInstance(context);
         mConfiguration = Configuration.getInstance(context);
+        getOsxServiceInstance();
     }
 
     public void showWindow(){
@@ -127,7 +131,7 @@ public class Utility {
         Log.d(TAG, "SummitXML  :: "+SubmitXML);
         String result = null;
         SubmitMXTask SubmitXMLTask = new SubmitMXTask();
-        SubmitXMLTask.execute(SubmitXML);
+        SubmitXMLTask.execute(SubmitXML, "enforceLock");
 
         final WindowManager wm = (WindowManager)mContext.getSystemService(WINDOW_SERVICE);
 
@@ -164,6 +168,7 @@ public class Utility {
             @Override
             public void onClick(View v) {
                 //close the service and remove the chat head from the window
+                Log.d(TAG, "onClick, > > > START_AUTH < < <");
                 isShowing = false;
                 wm.removeView(mChatHeadView);
                 doAuth();
@@ -172,6 +177,32 @@ public class Utility {
                 // finish();
             }
         });
+
+        //Set the close button.
+        Button btnCancel = (Button) mChatHeadView.findViewById(R.id.button_cancel);
+        btnCancel.setText("Debug-cancel");
+        btnCancel.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //close the service and remove the chat head from the window
+                Log.d(TAG, "onClick, > > > DEBUG_CANCEL < < <");
+                isShowing = false;
+                wm.removeView(mChatHeadView);
+                debugCancelAUTH();
+
+                // finishActivity(0);
+                // finish();
+            }
+        });
+    }
+
+    private void debugCancelAUTH() {
+        String SubmitXML = null;
+        SubmitXML = getXml("relax.xml");
+        Log.d(TAG, "SummitXML  :: "+SubmitXML);
+        String result = null;
+        SubmitMXTask SubmitXMLTask = new SubmitMXTask();
+        SubmitXMLTask.execute(SubmitXML, "relax");
     }
 
     public void fullSignOut(){
@@ -543,7 +574,7 @@ public class Utility {
         Log.d(TAG, "SummitXML  :: "+SubmitXML);
         String result = null;
         SubmitMXTask SubmitXMLTask = new SubmitMXTask();
-        SubmitXMLTask.execute(SubmitXML);
+        SubmitXMLTask.execute(SubmitXML, "relax");
 
         AuthState state = mAuthStateManager.getCurrent();
 
@@ -651,7 +682,8 @@ public class Utility {
             mContext.bindService(bindServiceIntent, mMxFrameworkServiceConnection,
                     Context.BIND_AUTO_CREATE);
         } catch (SecurityException e) {
-            Log.e(TAG, e.getMessage());
+            Log.e(TAG, "mxmf bind error : " + e.getMessage());
+            e.printStackTrace();
             //Toast.makeText(context, "MXMF Service Not Accessible", Toast.LENGTH_SHORT).show();
 
         }
@@ -661,7 +693,9 @@ public class Utility {
         @Override
         protected String doInBackground(String... sumitXML) {
             String returnValueFromFramework = null;
-            try {
+            //returnValueFromFramework = processMXServiceRequest(sumitXML);
+            returnValueFromFramework = processOSXServiceRequest(sumitXML);
+            /*try {
                 if (mMxFrameworkService == null)
                 {
                     bindMXMFServices("config.xml");
@@ -693,13 +727,50 @@ public class Utility {
 
                 Log.e(TAG, e.getMessage());
 
-            }
+            }*/
 
             return returnValueFromFramework;
         }
 
+    }
 
+    private String processMXServiceRequest(String... sumitXML) {
+        String returnValueFromFramework = null;
+        try {
+            if (mMxFrameworkService == null)
+            {
+                bindMXMFServices("config.xml");
+                try {
+                    synchronized (syncObject){
+                        syncObject.wait(10000);
+                    }
+                } catch (InterruptedException e) {
+                    Log.d(TAG,"Mx Service wait completed");
+                }
 
+            }
+            returnValueFromFramework = mMxFrameworkService.processXML(sumitXML[0]);
+            if (null != returnValueFromFramework) {
+
+                // As part of the sample, tell the user what happened.
+                Log.e(TAG,
+                        "ResultXML"
+                                + returnValueFromFramework);
+            }
+
+            return returnValueFromFramework;
+        }
+        catch (NullPointerException e) {
+
+            Log.e(TAG, e.getMessage());
+
+        } catch (Exception e) {
+
+            Log.e(TAG, e.getMessage());
+
+        }
+
+        return returnValueFromFramework;
     }
 
     // Class for interacting with the main interface of the service.
@@ -761,5 +832,150 @@ public class Utility {
         }
     };
 
+    /**
+     * OSX service connection APIs
+     */
+
+    private String processOSXServiceRequest(String... sumitXML) {
+        String returnValueFromFramework = null;
+        try {
+            if (mxAddonServiceManager == null)
+            {
+                Log.d(TAG,"OsxManager Service Not connected");
+                getOsxServiceInstance();
+                try {
+                    synchronized (syncObject){
+                        syncObject.wait(10000);
+                    }
+                } catch (InterruptedException e) {
+                    Log.d(TAG,"OsxManager Service wait completed");
+                }
+
+            }
+            returnValueFromFramework = processOSXManagerRequest(sumitXML[1]);
+            /*returnValueFromFramework = mxAddonServiceManager.processXML(sumitXML[0]);
+            if (null != returnValueFromFramework) {
+
+                // As part of the sample, tell the user what happened.
+                Log.e(TAG,
+                        "ResultXML"
+                                + returnValueFromFramework);
+            }*/
+
+            return returnValueFromFramework;
+        }
+        catch (NullPointerException e) {
+
+            Log.e(TAG, e.getMessage());
+
+        } catch (Exception e) {
+
+            Log.e(TAG, e.getMessage());
+
+        }
+
+        return returnValueFromFramework;
+    }
+
+    private String processOSXManagerRequest(String request) throws RemoteException {
+        Log.d(TAG, "processOSXManagerRequest, request: " + request);
+        if (request == null || request.isEmpty()) {
+            Log.d(TAG, "Invalid request to MxAddonServiceManager.");
+            return "Invalid request to MxAddonServiceManager";
+        }
+        if (mxAddonServiceManager == null) {
+            Log.d(TAG, "Unable to bind to MxAddonServiceManager.");
+            return "Unable to bind to MxAddonServiceManager";
+        }
+        if (request.equalsIgnoreCase("enforceLock")) {
+            Log.d(TAG, "processOSXManagerRequest, > > > ENFORCE_LOCK < < <");
+            //processOSXManagerRequest(1, false);
+            //processOSXManagerRequest(2, false);
+            setNavigationVisibility(false);
+            setNotificationPullDown(false);
+            //setRecentAppsButton(false);
+        } else if (request.equalsIgnoreCase("relax")) {
+            Log.d(TAG, "processOSXManagerRequest, > > > REMOVE_LOCK < < <");
+            //processOSXManagerRequest(1, true);
+            //processOSXManagerRequest(2, true);
+            setNavigationVisibility(true);
+            setNotificationPullDown(true);
+            //setRecentAppsButton(true);
+        }
+        return "Processed request to MxAddonServiceManager";
+    }
+
+    private void processOSXManagerRequest(int request, boolean state) {
+        try {
+            switch (request) {
+                case 1:
+                    setNavigationVisibility(state);
+                    break;
+                case 2:
+                    setNotificationPullDown(state);
+                    break;
+                case 3:
+                    setRecentAppsButton(state);
+                    break;
+                default:
+                    Log.d(TAG, "Not valid request: " + request + ", state: " + state);
+                    break;
+            }
+        } catch (RemoteException e) {
+            Log.e(TAG, "OSXManagerRequest" + e.getMessage());
+        }
+    }
+
+    private void setNavigationVisibility(boolean state) throws RemoteException {
+        if (mxAddonServiceManager.getNavigationVisibility() != state) {
+            Log.d(TAG, "Executing this to enable navigation bar.");
+            mxAddonServiceManager.setNavigationVisibility(state);
+        } else {
+            Log.d(TAG, "Navigation bar is already: " + state);
+        }
+    }
+
+    private void setNotificationPullDown(boolean state) throws RemoteException {
+        if (mxAddonServiceManager.getNotificationPullDown() != state) {
+            Log.d(TAG, "Executing this to enable Notification bar.");
+            mxAddonServiceManager.setNotificationPullDown(state);
+        } else {
+            Log.d(TAG, "Notification bar is already: " + state);
+        }
+    }
+
+    private void setRecentAppsButton(boolean state) throws RemoteException {
+        if (mxAddonServiceManager.getRecentAppsButton() != state) {
+            Log.d(TAG, "Executing this to enable RecentButton.");
+            mxAddonServiceManager.setRecentAppsButton(state);
+        } else {
+            Log.d(TAG, "RecntButton bar is already: " + state);
+        }
+    }
+
+    private void getOsxServiceInstance() {
+        Intent addOnServiceIntent = new Intent(MX_ADD_SERVICE_INTENT);
+        addOnServiceIntent.setPackage(IMxAddonProxyManager.class.getPackage().getName());
+        //Log.d("ShankarADDON", IMxAddonProxyManager.class.getPackage().getName());
+        //Log.d("ShankarMU", IMultiUserProxyManager.class.getPackage().getName());
+        if (mContext.bindService(addOnServiceIntent, mMxAddonServiceConnection, Context.BIND_AUTO_CREATE))
+            Log.d("OSxTest", "Bound to proxyframework");
+        else
+            Toast.makeText(mContext, "Not bound to proxyframework", Toast.LENGTH_SHORT).show();
+    }
+
+    final static String MX_ADD_SERVICE_INTENT = "com.symbol.osx.proxyframework.IMxAddonServiceManager";
+    IMxAddonServiceManager mxAddonServiceManager;
+    ServiceConnection mMxAddonServiceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            mxAddonServiceManager = null;
+        }
+
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            mxAddonServiceManager = IMxAddonServiceManager.Stub.asInterface(service);
+        }
+    };
 
 }

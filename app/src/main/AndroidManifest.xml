@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.niting.zebraauthenticator"
-    android:sharedUserId="android.uid.system">
+    package="com.niting.zebraauthenticator">
+    <!--android:sharedUserId="android.uid.system">-->
 
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.INTERNAL_SYSTEM_WINDOW" /> <!-- http://stackoverflow.com/a/34061521/5257399 -->
     <uses-permission android:name="android.permission.ACTION_MANAGE_OVERLAY_PERMISSION" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.LOCKED_BOOT_COMPLETED" />
+    <uses-permission android:name="com.symbol.mxmf.ACCESS_MX_MANAGEMENT_FRAMEWORK_SERVICE"/>
+    <uses-permission android:name="com.symbol.osx.proxyframework.permission.MXADDONSERVICE_CONTROL"/>
 
     <application
         android:allowBackup="true"
@@ -15,10 +18,11 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.ZebraAuthenticator">
+
         <receiver
             android:name=".ScreenReceiver"
             android:enabled="true"
-            android:exported="true"></receiver>
+            android:exported="true" />
 
         <service
             android:name=".Authenticator"
@@ -28,7 +32,8 @@
         <receiver
             android:name=".BootReciever"
             android:enabled="true"
-            android:exported="true">
+            android:exported="true"
+            android:directBootAware="true">
             <intent-filter>
                 <action android:name="android.intent.action.USER_PRESENT" />
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
@@ -37,6 +42,15 @@
         </receiver>
 
         <activity android:name=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity android:name=".SecondActivity"
+            android:label="@string/app_name_second">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

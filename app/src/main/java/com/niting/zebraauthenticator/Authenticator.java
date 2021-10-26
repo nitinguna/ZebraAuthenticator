@@ -58,6 +58,8 @@ public class Authenticator extends Service {
     private Boolean mSignoutRequested = false;
 
     private Utility utils;
+    private ScreenReceiver mScreenReceiver;
+
     public Authenticator() {
     }
 
@@ -73,7 +75,7 @@ public class Authenticator extends Service {
         utils = new Utility(getApplicationContext());
 
         utils.initAuth();
-        ScreenReceiver mScreenReceiver = new ScreenReceiver();
+        mScreenReceiver = new ScreenReceiver();
         IntentFilter filter = new IntentFilter(Intent.ACTION_USER_PRESENT);
         filter.addAction(ACTION_LOGOUT_USER);
         filter.addAction(ACTION_LOGOUT_FULL_USER);
@@ -159,5 +161,9 @@ public class Authenticator extends Service {
         return START_STICKY;
     }
 
-
+    @Override
+    public void onDestroy() {
+        if (mScreenReceiver != null) unregisterReceiver(mScreenReceiver);
+        super.onDestroy();
+    }
 }
